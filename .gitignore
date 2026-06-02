@@ -1,0 +1,97 @@
+# --- Entorno y secretos (nunca subir) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+credentials.json
+service-account*.json
+.aws/
+
+# --- Cursor / IDE local ---
+.cursor/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Python ---
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- uv / pip ---
+.uv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Tests y calidad ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# --- Logs y datos locales ---
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- Docker / despliegue local ---
+docker-compose.override.yml
+*.override.yml
+
+# --- Jupyter / notebooks (si aplica) ---
+.ipynb_checkpoints/
+
+# --- Whisper / modelos locales (pesados, no versionar) ---
+*.pt
+*.bin
+models/
+checkpoints/
