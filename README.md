@@ -2,7 +2,7 @@
 
 Backend service that receives real-time audio from multiple clients (microphone + system audio as separate streams), forwards it to a configurable Speech-to-Text provider, and returns normalized transcripts over WebSocket.
 
-Designed to pair with **[SpeakFlow Desktop](https://github.com/your-org/speakflow-desktop)** — the Electron app that captures dual audio and streams PCM chunks to this API.
+Designed to pair with **[SpeakFlow Desktop](https://github.com/laurasot/speakflow-desktop)** — the Electron app that captures dual audio and streams PCM chunks to this API.
 
 ## Features
 
@@ -315,7 +315,3 @@ git commit -m "feat: description"
 | Project | Role |
 |---------|------|
 | **SpeakFlow Desktop** | Captures mic + system audio, streams to this API |
-
-## License
-
-TBD
