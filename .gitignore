@@ -1,3 +1,6 @@
+# --- Documentación interna (no versionar) ---
+PLAN.md
+
 # --- Entorno y secretos (nunca subir) ---
 .env
 .env.*
