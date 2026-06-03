@@ -315,3 +315,21 @@ git commit -m "feat: description"
 | Project | Role |
 |---------|------|
 | **SpeakFlow Desktop** | Captures mic + system audio, streams to this API |
+
+## License
+
+This project is licensed under the **[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/)** — see [LICENSE](./LICENSE).
+
+| Allowed | Not allowed (for third parties) |
+|---------|----------------------------------|
+| Personal use, learning, research | Commercial use |
+| Modify and share (noncommercial) | Selling the software or derivatives |
+| Internal use in nonprofits/education | Commercial SaaS or paid services built on this code |
+
+**Copyright holder** may use the software commercially (e.g. SpeakFlow product). Everyone else needs a separate commercial license.
+
+For commercial licensing inquiries: contact the repository owner.
+
+### Why not CC BY-NC?
+
+Creative Commons targets creative works and documentation, not application source code. PolyForm Noncommercial is written for software and is clearer on SaaS and redistribution.
