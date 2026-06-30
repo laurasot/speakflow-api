@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Awaitable, Callable, Literal
 
-from app.providers.base import SpeechProvider
-from app.providers.factory import create_provider
+from app.providers.stt.base import SpeechProvider
+from app.providers.stt.factory import create_provider
 from app.schemas.audio import AudioConfig, StartSessionMessage
 from app.schemas.transcript import TranscriptMessage
 

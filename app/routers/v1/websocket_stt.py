@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Header, WebSocket, WebSocketDisconnect, status
 from pydantic import TypeAdapter, ValidationError
 
-from app.core.dependencies import SessionManagerDep
+from app.core.dependencies import SessionManagerDep, SpeechServiceDep
 from app.core.logging import session_id_var, user_id_var
 from app.schemas.audio import (
     AudioChunkMetadata,
@@ -15,6 +15,7 @@ from app.schemas.transcript import (
     ErrorMessage,
     SessionEndedMessage,
     SessionStartedMessage,
+    SuggestionMessage,
     TranscriptMessage,
 )
 
@@ -29,6 +30,7 @@ _incoming_adapter: TypeAdapter[IncomingMessage] = TypeAdapter(IncomingMessage)  
 async def stt_stream(
     websocket: WebSocket,
     session_manager: SessionManagerDep,
+    speech_service: SpeechServiceDep,
     x_user_id: str | None = Header(default=None),
 ) -> None:
     if not x_user_id:
@@ -40,12 +42,11 @@ async def stt_stream(
 
     session_id: str | None = None
 
-    async def send_transcript(transcript: TranscriptMessage) -> None:
-        await websocket.send_json(transcript.model_dump())
+    async def send_to_client(message: TranscriptMessage | SuggestionMessage) -> None:
+        await websocket.send_json(message.model_dump())
 
     try:
         while True:
-            # Cada ciclo puede ser texto (JSON) o binario (PCM)
             message = await websocket.receive()
 
             if message["type"] == "websocket.disconnect":
@@ -69,13 +70,18 @@ async def stt_stream(
                     session_id = str(parsed.session_id)
                     session_id_var.set(session_id)
 
-                    await session_manager.create_session(parsed, send_transcript)
+                    on_transcript = speech_service.build_transcript_callback(
+                        session_id=session_id,
+                        send_to_client=send_to_client,
+                    )
+                    await session_manager.create_session(parsed, on_transcript)
                     await websocket.send_json(
                         SessionStartedMessage(session_id=session_id).model_dump()
                     )
 
                 elif isinstance(parsed, StopSessionMessage):
                     sid = str(parsed.session_id)
+                    speech_service.cleanup_session(sid)
                     await session_manager.close_session(sid)
                     await websocket.send_json(
                         SessionEndedMessage(session_id=sid).model_dump()
@@ -83,8 +89,6 @@ async def stt_stream(
                     break
 
                 elif isinstance(parsed, AudioChunkMetadata):
-                    # El siguiente frame es el binario — se lee en el próximo ciclo
-                    # Guardamos la metadata temporalmente en el scope local
                     pending_metadata = parsed
                     binary_message = await websocket.receive()
 
@@ -114,4 +118,5 @@ async def stt_stream(
         logger.exception("Unexpected error in WebSocket handler")
     finally:
         if session_id:
+            speech_service.cleanup_session(session_id)
             await session_manager.close_session(session_id)

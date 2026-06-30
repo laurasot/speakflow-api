@@ -5,7 +5,7 @@ import time
 import wave
 from typing import Awaitable, Callable
 
-from app.providers.factory import register_provider
+from app.providers.stt.factory import register_provider
 from app.schemas.audio import AudioConfig
 from app.schemas.transcript import TranscriptMessage
 

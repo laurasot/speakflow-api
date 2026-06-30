@@ -7,7 +7,7 @@ from typing import Any, Awaitable, Callable
 import websockets
 
 from app.core.config import settings
-from app.providers.factory import register_provider
+from app.providers.stt.factory import register_provider
 from app.schemas.audio import AudioConfig
 from app.schemas.transcript import TranscriptMessage
 

@@ -1,6 +1,15 @@
+from dataclasses import dataclass
 from typing import Annotated, Literal, Union
 
-from pydantic import UUID4, BaseModel, Field
+from pydantic import BaseModel, Field
+
+# Por qué se disparó la sugerencia — el frontend usa esto para mostrar contexto al usuario
+SuggestionTriggerReason = Literal[
+    "silence",           # Speaker preguntó y el User no respondió
+    "repeated_question", # Speaker repitió la misma pregunta
+    "filler_words",      # User dijo um/uh/mmm después de que Speaker preguntó
+    "user_question",     # User preguntó y el Speaker no respondió
+]
 
 
 class SessionStartedMessage(BaseModel):
@@ -33,7 +42,45 @@ class ErrorMessage(BaseModel):
     session_id: str | None = None
 
 
+class SuggestionMessage(BaseModel):
+    type: Literal["suggestion"] = "suggestion"
+    session_id: str
+    source: Literal["microphone", "system"]
+    suggestion: str
+    based_on: str = Field(..., description="El texto (del Speaker o del User) que disparó la sugerencia")
+    trigger_reason: SuggestionTriggerReason = Field(
+        ...,
+        description=(
+            "Por qué se activó la sugerencia: "
+            "'silence' = silencio prolongado, "
+            "'repeated_question' = el Speaker repitió la pregunta, "
+            "'filler_words' = el User dijo palabras de relleno (um, uh...)"
+        ),
+    )
+    timestamp: int = Field(..., description="Unix timestamp en milisegundos")
+
+
+@dataclass
+class ConversationTurn:
+    """Representa un turno de conversación para el contexto del LLM."""
+
+    source: Literal["microphone", "system"]
+    text: str
+    timestamp: int
+
+    @property
+    def role(self) -> str:
+        """Devuelve el rol para el prompt del LLM."""
+        return "User" if self.source == "microphone" else "Speaker"
+
+
 OutgoingMessage = Annotated[
-    Union[SessionStartedMessage, TranscriptMessage, SessionEndedMessage, ErrorMessage],
+    Union[
+        SessionStartedMessage,
+        TranscriptMessage,
+        SessionEndedMessage,
+        ErrorMessage,
+        SuggestionMessage,
+    ],
     Field(discriminator="type"),
 ]

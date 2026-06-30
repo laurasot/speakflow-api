@@ -7,7 +7,7 @@ from typing import Awaitable, Callable
 import boto3
 
 from app.core.config import settings
-from app.providers.factory import register_provider
+from app.providers.stt.factory import register_provider
 from app.schemas.audio import AudioConfig
 from app.schemas.transcript import TranscriptMessage
 
