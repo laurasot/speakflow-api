@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # Suggestion trigger settings
     suggestion_silence_threshold: float = Field(
-        default=4.0, ge=1.0, description="Segundos de silencio antes de disparar sugerencia"
+        default=6.0, ge=1.0, description="Segundos de silencio antes de disparar sugerencia"
     )
     suggestion_similarity_threshold: float = Field(
         default=0.6, ge=0.0, le=1.0, description="Umbral de similitud para detectar pregunta repetida"
@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     suggestion_filler_words: list[str] = Field(
         default=["um", "uh", "mmm", "hmm", "eh", "bueno", "este", "pues", "like", "you know"],
         description="Palabras de relleno que indican duda del usuario",
+    )
+    enable_semantic_similarity: bool = Field(
+        default=False,
+        description="Usar embeddings (BAAI/bge-small-en-v1.5) en lugar de difflib para similitud",
     )
 
     # Server

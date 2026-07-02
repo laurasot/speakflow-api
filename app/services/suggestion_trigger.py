@@ -3,7 +3,6 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from difflib import SequenceMatcher
 from typing import TYPE_CHECKING, Awaitable, Callable, Literal
 
 from app.core.config import settings
@@ -13,6 +12,7 @@ from app.schemas.transcript import (
     SuggestionTriggerReason,
     TranscriptMessage,
 )
+from app.services.embedding_service import get_embedding_service
 from app.services.suggestion_service import SuggestionService
 
 if TYPE_CHECKING:
@@ -40,12 +40,11 @@ class SuggestionState:
 
 class SuggestionTrigger:
     """
-    Decide cuándo disparar sugerencias basándose en 5 señales:
-    1. Silencio largo del mic después de que el Speaker preguntó
-    2. El Speaker repite la pregunta (similitud semántica)
+    Decide cuándo disparar sugerencias basándose en estas señales:
+    1. Silencio del User después de cualquier final del Speaker
+    2. El Speaker repite un turno similar (similitud semántica, timer más corto)
     3. Palabras de relleno del User (um, uh, mmm...)
-    4. Pregunta directa del Speaker (termina en ?)
-    5. Pregunta directa del User y el Speaker no responde
+    4. Pregunta directa del User y el Speaker no responde
     """
 
     def __init__(
@@ -56,6 +55,7 @@ class SuggestionTrigger:
         self._service = suggestion_service
         self._send_suggestion = send_suggestion
         self._states: dict[str, SuggestionState] = {}
+        self._embedding_service = get_embedding_service(enable=settings.enable_semantic_similarity)
 
     def get_or_create_state(self, session_id: str) -> SuggestionState:
         if session_id not in self._states:
@@ -96,12 +96,10 @@ class SuggestionTrigger:
     ) -> None:
         """Maneja un final del sistema (Speaker).
 
-        Cancela el timer si estábamos esperando que el Speaker respondiera
-        una pregunta del User, luego evalúa si el Speaker preguntó algo.
+        Tras cualquier turno final del Speaker, espera respuesta del User.
+        Si el User no habla dentro del umbral de silencio, dispara sugerencia.
         """
         now = time.monotonic()
-
-        is_question = self._is_question(transcript.text)
         is_repeat = self._is_repeat(transcript.text, state.last_system_final_text)
 
         state.last_system_final_at = now
@@ -112,13 +110,6 @@ class SuggestionTrigger:
             state.suggestion_timer = None
             state.pending_suggestion = False
             state.waiting_for = None
-
-        if not is_question:
-            logger.debug(
-                "Speaker spoke but not a question, skipping",
-                extra={"extra": {"session_id": transcript.session_id}},
-            )
-            return
 
         silence_threshold = settings.suggestion_silence_threshold
         # repeated_question reduce el umbral (más urgente)
@@ -269,12 +260,16 @@ class SuggestionTrigger:
         return any(lower.startswith(q) for q in question_starters)
 
     def _is_repeat(self, current: str, previous: str | None) -> bool:
-        """Detecta si el Speaker repitió una pregunta similar."""
+        """Detecta si el Speaker repitió una pregunta similar.
+
+        Usa embeddings (BAAI/bge-small-en-v1.5) si está habilitado,
+        o difflib.SequenceMatcher como fallback.
+        """
         if not previous:
             return False
 
-        ratio = SequenceMatcher(None, current.lower(), previous.lower()).ratio()
-        return ratio >= settings.suggestion_similarity_threshold
+        similarity = self._embedding_service.similarity(current, previous)
+        return similarity >= settings.suggestion_similarity_threshold
 
     def _has_filler_words(self, state: SuggestionState) -> bool:
         """Revisa si los últimos turnos del mic tienen palabras de relleno."""

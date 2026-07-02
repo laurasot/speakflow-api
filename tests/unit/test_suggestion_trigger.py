@@ -9,6 +9,24 @@ from app.services.suggestion_service import SuggestionService
 from app.services.suggestion_trigger import SuggestionState, SuggestionTrigger
 
 
+@pytest.fixture
+def mock_embedding_service():
+    """Mock del servicio de embeddings para tests."""
+    service = MagicMock()
+    service.enabled = False
+    service.similarity.return_value = 0.75  # Simula alta similitud por defecto
+    return service
+
+
+@pytest.fixture
+def mock_embedding_service():
+    """Mock del servicio de embeddings para tests."""
+    service = MagicMock()
+    service.enabled = False
+    service.similarity.return_value = 0.75  # Simula alta similitud por defecto
+    return service
+
+
 def make_transcript(
     source: str = "system",
     text: str = "What is your experience?",
@@ -49,11 +67,12 @@ def mock_send_suggestion():
 
 
 @pytest.fixture
-def trigger(mock_suggestion_service, mock_send_suggestion):
-    return SuggestionTrigger(
-        suggestion_service=mock_suggestion_service,
-        send_suggestion=mock_send_suggestion,
-    )
+def trigger(mock_suggestion_service, mock_send_suggestion, mock_embedding_service):
+    with patch("app.services.suggestion_trigger.get_embedding_service", return_value=mock_embedding_service):
+        return SuggestionTrigger(
+            suggestion_service=mock_suggestion_service,
+            send_suggestion=mock_send_suggestion,
+        )
 
 
 class TestIsQuestion:
@@ -79,12 +98,18 @@ class TestIsQuestion:
 
 
 class TestIsRepeat:
-    def test_similar_questions_detected(self, trigger):
+    def test_similar_questions_detected(self, trigger, mock_embedding_service):
+        # Mock de alta similitud (embeddings habría retornado ~0.75)
+        mock_embedding_service.similarity.return_value = 0.75
+        
         current = "What's your approach to handling race conditions?"
         previous = "Could you explain your approach to race conditions?"
         assert trigger._is_repeat(current, previous) is True
 
-    def test_different_questions_not_detected(self, trigger):
+    def test_different_questions_not_detected(self, trigger, mock_embedding_service):
+        # Mock de baja similitud
+        mock_embedding_service.similarity.return_value = 0.3
+        
         current = "What's your approach to handling race conditions?"
         previous = "Tell me about your hobbies"
         assert trigger._is_repeat(current, previous) is False
@@ -161,25 +186,31 @@ class TestEvaluate:
         assert state.waiting_for == "system"
         assert state.pending_trigger_reason == "user_question"
 
-    async def test_speaker_response_cancels_user_question_timer(self, trigger):
+    async def test_speaker_response_restarts_timer_waiting_for_mic(self, trigger):
         mic_transcript = make_transcript(source="microphone", text="Could you clarify the timeline?")
         await trigger.evaluate(mic_transcript)
 
         state = trigger.get_or_create_state("test-session")
         assert state.suggestion_timer is not None
+        assert state.waiting_for == "system"
 
         system_transcript = make_transcript(source="system", text="Sure, it's 3 months")
         await trigger.evaluate(system_transcript)
 
-        assert state.suggestion_timer is None
-        assert state.pending_suggestion is False
+        assert state.suggestion_timer is not None
+        assert state.pending_suggestion is True
+        assert state.waiting_for == "microphone"
+        assert state.pending_trigger_reason == "silence"
 
-    async def test_non_question_does_not_start_timer(self, trigger):
-        transcript = make_transcript(source="system", text="That sounds great")
+    async def test_system_statement_starts_timer_waiting_for_mic(self, trigger):
+        transcript = make_transcript(source="system", text="Tell me about your last project")
         await trigger.evaluate(transcript)
 
         state = trigger.get_or_create_state("test-session")
-        assert state.suggestion_timer is None
+        assert state.suggestion_timer is not None
+        assert state.pending_suggestion is True
+        assert state.waiting_for == "microphone"
+        assert state.pending_trigger_reason == "silence"
 
     async def test_mic_statement_does_not_start_timer(self, trigger):
         transcript = make_transcript(source="microphone", text="I understand the requirements")

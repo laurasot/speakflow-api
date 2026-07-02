@@ -5,9 +5,9 @@ from pydantic import BaseModel, Field
 
 # Por qué se disparó la sugerencia — el frontend usa esto para mostrar contexto al usuario
 SuggestionTriggerReason = Literal[
-    "silence",           # Speaker preguntó y el User no respondió
-    "repeated_question", # Speaker repitió la misma pregunta
-    "filler_words",      # User dijo um/uh/mmm después de que Speaker preguntó
+    "silence",           # Speaker habló y el User no respondió a tiempo
+    "repeated_question", # Speaker repitió un turno similar
+    "filler_words",      # User dijo um/uh/mmm mientras debía responder al Speaker
     "user_question",     # User preguntó y el Speaker no respondió
 ]
 
