@@ -18,12 +18,12 @@ Notas de la revisión de specs: el CI tiene CUATRO trabajos (ruff, mypy, `pytest
 
 ## 2. Unidad 1: herramientas y aislamiento del entorno (PR A)
 
-- [ ] 1.1 Escribir primero `tests/unit/test_hermetic_env.py`: con `OPENAI_API_KEY` falso en el entorno, `settings.openai_api_key == ""`; tras un test que cambia `auth_api_key_hashes`, el siguiente ve verificador nuevo; `_REGISTRY` no conserva `__test_provider__`. (TI-01, TI-02). Verificar: `uv run pytest tests/unit/test_hermetic_env.py` (debe fallar antes de 1.3).
-- [ ] 1.2 Editar `pyproject.toml`: agregar `pytest-cov>=5.0.0` y `pytest-randomly>=3.15.0` a `[project.optional-dependencies] dev` y a `[tool.uv] dev-dependencies`; `asyncio_mode`, `testpaths`, `markers` (integration, e2e), `addopts = "--strict-markers --cov=app --cov-report=term-missing"`, `xfail_strict = true`, `[tool.coverage.run] branch = true`. NO poner `fail_under` aún. (TI-03). Verificar: `uv sync && uv run pytest --markers` y un marker inventado debe dar error.
-- [ ] 1.3 Editar `tests/conftest.py`: fixture autouse `hermetic_env` (bucle sobre `Settings.model_fields` con `get_default(call_default_factory=True)`, override de hashes/LLM, `cache_clear()` antes y después de los tres singletons, copia de `factory._REGISTRY`); reemplazar `configured_api_keys`. (TI-01, TI-02). Verificar: `uv run pytest` en verde.
-- [ ] 1.4 Eliminar el `mock_embedding_service` duplicado en `tests/unit/test_suggestion_trigger.py` y la fuga del registro en `tests/unit/test_providers.py:13`. (TI-02). Verificar: `grep -c "def mock_embedding_service" tests/unit/test_suggestion_trigger.py` da 1.
-- [ ] 1.5 Verificar con 3 semillas y con/sin `.env`: `uv run pytest -p randomly --randomly-seed=1`, `=2`, `=3`; repetir con un `.env` de prueba con datos; `grep -rn "\.env" tests` sin lecturas. (TI-01, TI-02).
-- [ ] 1.6 Commit: `feat(tests): add hermetic env fixture, strict markers and random order`.
+- [x] 1.1 Escribir primero `tests/unit/test_hermetic_env.py`: con `OPENAI_API_KEY` falso en el entorno, `settings.openai_api_key == ""`; tras un test que cambia `auth_api_key_hashes`, el siguiente ve verificador nuevo; `_REGISTRY` no conserva `__test_provider__`. (TI-01, TI-02). Verificar: `uv run pytest tests/unit/test_hermetic_env.py` (debe fallar antes de 1.3).
+- [x] 1.2 Editar `pyproject.toml`: agregar `pytest-cov>=5.0.0` y `pytest-randomly>=3.15.0` a `[project.optional-dependencies] dev` y a `[tool.uv] dev-dependencies`; `asyncio_mode`, `testpaths`, `markers` (integration, e2e), `addopts = "--strict-markers --cov=app --cov-report=term-missing"`, `xfail_strict = true`, `[tool.coverage.run] branch = true`. NO poner `fail_under` aún. (TI-03). Verificar: `uv sync && uv run pytest --markers` y un marker inventado debe dar error.
+- [x] 1.3 Editar `tests/conftest.py`: fixture autouse `hermetic_env` (bucle sobre `Settings.model_fields` con `get_default(call_default_factory=True)`, override de hashes/LLM, `cache_clear()` antes y después de los tres singletons, copia de `factory._REGISTRY`); reemplazar `configured_api_keys`. (TI-01, TI-02). Verificar: `uv run pytest` en verde.
+- [x] 1.4 Eliminar el `mock_embedding_service` duplicado en `tests/unit/test_suggestion_trigger.py` y la fuga del registro en `tests/unit/test_providers.py:13`. (TI-02). Verificar: `grep -c "def mock_embedding_service" tests/unit/test_suggestion_trigger.py` da 1.
+- [x] 1.5 Verificar con 3 semillas y con/sin `.env`: `uv run pytest -p randomly --randomly-seed=1`, `=2`, `=3`; repetir con un `.env` de prueba con datos; `grep -rn "\.env" tests` sin lecturas. (TI-01, TI-02).
+- [x] 1.6 Commit: `feat(tests): add hermetic env fixture, strict markers and random order`.
 
 ## 3. Unidad 3: helpers de prueba (PR A, parte A1)
 

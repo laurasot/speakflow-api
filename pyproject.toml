@@ -26,6 +26,8 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
+    "pytest-cov>=5.0.0",
+    "pytest-randomly>=3.15.0",
     "ruff>=0.6.0",
     "mypy>=1.11.0",
     "pre-commit>=3.8.0",
@@ -35,6 +37,8 @@ dev = [
 dev-dependencies = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
+    "pytest-cov>=5.0.0",
+    "pytest-randomly>=3.15.0",
     "ruff>=0.6.0",
     "mypy>=1.11.0",
     "pre-commit>=3.8.0",
@@ -56,6 +60,16 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "integration: WebSocket/loopback tests",
+    "e2e: full in-process flow, excluded from fast run",
+]
+addopts = "--strict-markers --cov=app --cov-report=term-missing"
+xfail_strict = true
+strict_markers = true
+
+[tool.coverage.run]
+branch = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

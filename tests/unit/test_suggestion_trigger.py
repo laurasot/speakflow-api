@@ -18,15 +18,6 @@ def mock_embedding_service():
     return service
 
 
-@pytest.fixture
-def mock_embedding_service():
-    """Mock del servicio de embeddings para tests."""
-    service = MagicMock()
-    service.enabled = False
-    service.similarity.return_value = 0.75  # Simula alta similitud por defecto
-    return service
-
-
 def make_transcript(
     source: str = "system",
     text: str = "What is your experience?",
