@@ -30,6 +30,16 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     anthropic_api_key: str = ""
 
+    # Auth: SHA-256 hash of each API key -> user_id it authenticates as. Empty = every connection is rejected.
+    auth_api_key_hashes: dict[str, str] = Field(default_factory=dict)
+
+    # Audio backpressure
+    audio_queue_max_chunks: int = Field(
+        default=120,
+        ge=1,
+        description="Chunks de audio en cola por fuente antes de descartar los más antiguos (120 ≈ 60 s a 500 ms)",
+    )
+
     # Timeouts
     provider_connect_timeout: int = Field(default=10, ge=1)
     provider_response_timeout: int = Field(default=30, ge=1)

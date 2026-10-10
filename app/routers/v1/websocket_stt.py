@@ -1,9 +1,11 @@
 import logging
+from uuid import uuid4
 
 from fastapi import APIRouter, Header, WebSocket, WebSocketDisconnect, status
 from pydantic import TypeAdapter, ValidationError
 
-from app.core.dependencies import SessionManagerDep, SpeechServiceDep
+from app.core.auth import AuthenticationError, extract_bearer_token
+from app.core.dependencies import SessionManagerDep, SpeechServiceDep, TokenVerifierDep
 from app.core.logging import session_id_var, user_id_var
 from app.schemas.audio import (
     AudioChunkMetadata,
@@ -31,16 +33,24 @@ async def stt_stream(
     websocket: WebSocket,
     session_manager: SessionManagerDep,
     speech_service: SpeechServiceDep,
-    x_user_id: str | None = Header(default=None),
+    token_verifier: TokenVerifierDep,
+    authorization: str | None = Header(default=None),
 ) -> None:
-    if not x_user_id:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="X-User-Id header required")
+    token = extract_bearer_token(authorization)
+    try:
+        if token is None:
+            raise AuthenticationError
+        identity = token_verifier.verify(token)
+    except AuthenticationError:
+        logger.warning("WebSocket rejected: authentication failed")
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication required")
         return
 
     await websocket.accept()
-    user_id_var.set(x_user_id)
+    user_id_var.set(identity.user_id)
 
     session_id: str | None = None
+    connection_id = str(uuid4())
 
     async def send_to_client(message: TranscriptMessage | SuggestionMessage) -> None:
         await websocket.send_json(message.model_dump())
@@ -67,22 +77,36 @@ async def stt_stream(
                     continue
 
                 if isinstance(parsed, StartSessionMessage):
+                    if parsed.user_id != identity.user_id:
+                        logger.warning("start_session refused: user_id does not match credential")
+                        await websocket.send_json(
+                            ErrorMessage(
+                                code="user_mismatch",
+                                message="user_id does not match the authenticated user.",
+                                session_id=str(parsed.session_id),
+                            ).model_dump()
+                        )
+                        continue
+
                     session_id = str(parsed.session_id)
                     session_id_var.set(session_id)
 
+                    speech_service.cleanup_session(session_id)
                     on_transcript = speech_service.build_transcript_callback(
                         session_id=session_id,
                         send_to_client=send_to_client,
                     )
-                    await session_manager.create_session(parsed, on_transcript)
+                    await session_manager.create_session(
+                        parsed, on_transcript, owner=connection_id
+                    )
                     await websocket.send_json(
                         SessionStartedMessage(session_id=session_id).model_dump()
                     )
 
                 elif isinstance(parsed, StopSessionMessage):
                     sid = str(parsed.session_id)
-                    speech_service.cleanup_session(sid)
-                    await session_manager.close_session(sid)
+                    if await session_manager.close_session(sid, owner=connection_id):
+                        speech_service.cleanup_session(sid)
                     await websocket.send_json(
                         SessionEndedMessage(session_id=sid).model_dump()
                     )
@@ -117,6 +141,7 @@ async def stt_stream(
     except Exception:
         logger.exception("Unexpected error in WebSocket handler")
     finally:
-        if session_id:
+        if session_id and await session_manager.close_session(
+            session_id, owner=connection_id
+        ):
             speech_service.cleanup_session(session_id)
-            await session_manager.close_session(session_id)

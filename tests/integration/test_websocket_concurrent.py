@@ -40,7 +40,7 @@ def reset_session_manager():
 
 
 class TestWebSocketProtocol:
-    def test_rejected_without_user_id_header(self):
+    def test_rejected_without_credentials(self):
         from starlette.websockets import WebSocketDisconnect
 
         client = TestClient(app)
@@ -49,11 +49,11 @@ class TestWebSocketProtocol:
                 pass
         assert exc_info.value.code == 1008
 
-    def test_session_started_on_valid_start_message(self):
+    def test_session_started_on_valid_start_message(self, auth_headers):
         client = TestClient(app)
         session_id = str(uuid4())
 
-        with client.websocket_connect("/v1/stt/stream", headers={"X-User-Id": "user1"}) as ws:
+        with client.websocket_connect("/v1/stt/stream", headers=auth_headers) as ws:
             ws.send_json({
                 "type": "start_session",
                 "session_id": session_id,
@@ -65,20 +65,20 @@ class TestWebSocketProtocol:
             assert response["type"] == "session_started"
             assert response["session_id"] == session_id
 
-    def test_error_on_invalid_json_message(self):
+    def test_error_on_invalid_json_message(self, auth_headers):
         client = TestClient(app)
 
-        with client.websocket_connect("/v1/stt/stream", headers={"X-User-Id": "user1"}) as ws:
+        with client.websocket_connect("/v1/stt/stream", headers=auth_headers) as ws:
             ws.send_text('{"type": "unknown_type", "garbage": true}')
             response = ws.receive_json()
             assert response["type"] == "error"
             assert response["code"] == "invalid_message"
 
-    def test_stop_session_closes_gracefully(self):
+    def test_stop_session_closes_gracefully(self, auth_headers):
         client = TestClient(app)
         session_id = str(uuid4())
 
-        with client.websocket_connect("/v1/stt/stream", headers={"X-User-Id": "user1"}) as ws:
+        with client.websocket_connect("/v1/stt/stream", headers=auth_headers) as ws:
             ws.send_json({
                 "type": "start_session",
                 "session_id": session_id,
