@@ -116,7 +116,9 @@ curl http://localhost:8000/v1/health
 
 WebSocket endpoint: `ws://localhost:8000/v1/stt/stream`
 
-Clients must send `X-User-Id` header on connection or they're rejected with code `1008`.
+Clients authenticate with `Authorization: Bearer <api-key>` on the WebSocket handshake; without a valid key the connection is rejected with code `1008`. The user identity is derived from the key, never from client input: a `start_session` whose `user_id` does not match the key's user gets an `error` with code `user_mismatch`.
+
+API keys are configured as SHA-256 hashes in `AUTH_API_KEY_HASHES` (JSON, hash → user_id); see `.env.example`. With no keys configured, every connection is rejected.
 
 ## Decisions
 
@@ -227,7 +229,7 @@ Options considered:
 
 - **Client → Server:** `start_session`, `audio_chunk` (JSON + binary PCM), `stop_session`
 - **Server → Client:** `session_started`, `transcript`, `suggestion`, `session_ended`, `error`
-- **Auth:** `X-User-Id` header required on connection (rejected with `1008` if missing)
+- **Auth:** `Authorization: Bearer <api-key>` required on the handshake (rejected with `1008` otherwise); identity comes from the key
 
 **Suggestion trigger reasons:**
 
