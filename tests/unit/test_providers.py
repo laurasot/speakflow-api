@@ -3,7 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from app.providers.stt.factory import _REGISTRY, create_provider, register_provider
+from app.providers.stt import factory
+from app.providers.stt.factory import create_provider, register_provider
 from app.schemas.audio import AudioConfig
 from app.schemas.transcript import TranscriptMessage
 
@@ -14,8 +15,7 @@ class TestProviderRegistry:
         class TestProvider:
             provider_name = "__test_provider__"
 
-        assert "__test_provider__" in _REGISTRY
-        assert _REGISTRY["__test_provider__"] is TestProvider
+        assert factory._REGISTRY["__test_provider__"] is TestProvider
 
     def test_create_provider_raises_on_unknown(self, monkeypatch):
         monkeypatch.setattr("app.providers.stt.factory.settings.speech_provider", "unknown_xyz")
