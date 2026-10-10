@@ -98,3 +98,6 @@ docker-compose.override.yml
 *.bin
 models/
 checkpoints/
+
+# --- SDD local registry ---
+.atl/

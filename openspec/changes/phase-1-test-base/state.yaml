@@ -1,0 +1,18 @@
+change: phase-1-test-base
+project: speakflow-api
+artifact_store: openspec
+execution_mode: interactive
+delivery_strategy: ask-on-risk
+strict_tdd: true
+branch: test/phase-1-test-base
+base: feat/api-key-auth
+phases:
+  explore: done
+  propose: done
+  spec: done
+  design: done
+  tasks: done
+  apply: pending
+  verify: pending
+  archive: pending
+next: apply (PR A, unidad 1)

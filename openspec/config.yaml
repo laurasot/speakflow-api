@@ -1,0 +1,59 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Python >=3.11, FastAPI + uvicorn, pydantic-settings, websockets, LangChain (openai/groq/anthropic), Deepgram/AssemblyAI/AWS Transcribe/Whisper STT.
+  Architecture: layered (routers -> services -> providers), in-memory SessionManager, provider registries (stt/llm factories). ADR-0 in docs/adr/.
+  Testing: pytest + pytest-asyncio (asyncio_mode=auto); tests/unit and tests/integration (TestClient websockets); no e2e, no coverage tool.
+  Style: ruff (E,F,I,UP,B,SIM; line 100), mypy strict; code in English, docstrings only, no comments (see CLAUDE.md).
+  Conventions: CLAUDE.md + technical-guidelines/*.md. No Co-Authored-By in commits. Do not create .md files unless requested.
+
+strict_tdd: true
+
+testing:
+  runner:
+    command: ".venv/Scripts/python.exe -m pytest"
+    alt_command: "uv run pytest"
+    framework: pytest
+  layers:
+    unit: true
+    integration: true
+    e2e: false
+  coverage:
+    available: false
+    note: "pytest-cov is not installed; add it in phase 1 (target >80% per CLAUDE.md)"
+  quality:
+    linter: "ruff check app tests (baseline: 51 findings, 33 auto-fixable)"
+    type_checker: "mypy app (baseline: fails, numpy stubs use 3.12 syntax with python_version=3.11)"
+    formatter: "ruff format"
+  missing:
+    - pytest-cov
+    - pytest-randomly
+    - CI (.github/workflows)
+    - Dockerfile
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Reference the finding numbers (#1..#14) from PLAN-MEJORAS.md
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Follow technical-guidelines/testing-guidelines.md (pyramid, golden tests, xfail strict, real artifact)
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+    - Forecast changed lines; ask on risk above 400 (delivery_strategy ask-on-risk)
+  apply:
+    - Follow existing code patterns
+    - Known bugs land first as xfail(strict=True) tests, verified with pytest --runxfail
+    - Tests live in the same commit as the behavior they verify
+    tdd: true
+    test_command: ".venv/Scripts/python.exe -m pytest -q"
+  verify:
+    test_command: ".venv/Scripts/python.exe -m pytest -q"
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
